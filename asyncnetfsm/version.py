@@ -1,7 +1,7 @@
-""" Netdev Version information
+""" AsyncNetFSM Version information
 """
 
-__version__ = "0.9.3"
-__author__ = "Yakovlev Sergey"
-__author_email__ = "selfuryon@gmail.com"
-__url__ = "http://netdev.readthedocs.io/"
+__version__ = "0.0.2"
+__author__ = "Omar Al-Ghussein"
+__author_email__ = "z3@live.it"
+__url__ = "https://o-g.me"
