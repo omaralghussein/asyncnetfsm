@@ -74,10 +74,10 @@ class JunOSLikeDevice(BaseDevice):
         :param bool strip_prompt: True or False for stripping ending device prompt
         :return: The output of the command
         """
-        print("Host {}: Sending command".format(self._host))
+        logger.info("Host {}: Sending command".format(self._host))
         output = ""
         command_string = self._normalize_cmd(command_string)
-        print(
+        logger.info(
             "Host {}: Send command: {}".format(self._host, repr(command_string))
         )
         self._stdin.write(command_string)
@@ -95,7 +95,7 @@ class JunOSLikeDevice(BaseDevice):
         if use_textfsm:
             logger.info("parsing output using texfsm, command=%r," % command_string)
             output = utils.get_structured_data(output, self._device_type, command_string)
-        print(
+        logger.info(
             "Host {}: Send command output: {}".format(self._host, repr(output))
         )
         return output
@@ -109,7 +109,7 @@ class JunOSLikeDevice(BaseDevice):
 
         For JunOS devices base_pattern is "user(@[hostname])?[>|#]
         """
-        print("Host {}: Setting base prompt".format(self._host))
+        logger.info("Host {}: Setting base prompt".format(self._host))
         prompt = await self._find_prompt()
         prompt = prompt[:-1]
         # Strip off trailing terminator
@@ -121,8 +121,8 @@ class JunOSLikeDevice(BaseDevice):
         base_prompt = re.escape(self._base_prompt[:12])
         pattern = type(self)._pattern
         self._base_pattern = pattern.format(delimiters=delimiters)
-        print("Host {}: Base Prompt: {}".format(self._host, self._base_prompt))
-        print("Host {}: Base Pattern: {}".format(self._host, self._base_pattern))
+        logger.info("Host {}: Base Prompt: {}".format(self._host, self._base_prompt))
+        logger.info("Host {}: Base Pattern: {}".format(self._host, self._base_pattern))
         return self._base_prompt
 
     async def check_config_mode(self):
@@ -135,7 +135,7 @@ class JunOSLikeDevice(BaseDevice):
 
     async def config_mode(self):
         """Enter to configuration mode"""
-        print("Host {}: Entering to configuration mode".format(self._host))
+        logger.info("Host {}: Entering to configuration mode".format(self._host))
         output = ""
         config_enter = type(self)._config_enter
         if not await self.check_config_mode():
