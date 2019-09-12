@@ -8,7 +8,7 @@ setuptools.setup(
     version="0.0.2",
     author="Omar Al-Ghussein",
     author_email="z3@live.it",
-    description="simply its netdev with fsm ",
+    description="simply its Netdev with textFSM ",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/omaralghussein/asyncnetfsm",
