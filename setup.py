@@ -5,7 +5,7 @@ with open("README.rst", "r") as fh:
 
 setuptools.setup(
     name="asyncnetfsm",
-    version="0.0.2",
+    version="0.0.3",
     author="Omar Al-Ghussein",
     author_email="z3@live.it",
     description="simply its Netdev with textFSM ",

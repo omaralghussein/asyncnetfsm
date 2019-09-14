@@ -51,8 +51,6 @@ class JunOSLikeDevice(BaseDevice):
     async def _flush_buffer(self):
         """ flush unnecessary data """
         logger.debug("Flushing buffers")
-
-       
         await self._read_until_pattern(self._base_pattern)
 
     async def send_command(
@@ -179,7 +177,8 @@ class JunOSLikeDevice(BaseDevice):
             return ""
 
         # Send config commands
-        output = await self.config_mode()
+        await self.config_mode()
+        output = ''
         output += await super().send_config_set(config_commands=config_commands)
         if with_commit:
             commit = type(self)._commit_command

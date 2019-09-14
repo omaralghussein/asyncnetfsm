@@ -292,6 +292,22 @@ class BaseDevice(object):
         logger.debug("Host {}: Found Prompt: {}".format(self._host, repr(prompt)))
         return prompt
 
+    async def send_command_expect(self, command,
+                                  pattern='',
+                                  re_flags=0, dont_read=False,
+                                  read_for=0):
+        """ Send a single line of command and readuntil prompte"""
+        self._stdin.write(self._normalize_cmd(command))
+        if dont_read:
+            return ''
+        if pattern:
+            output = await self._read_until_prompt_or_pattern(pattern, re_flags)
+
+        else:
+            output = await self._read_until_prompt()
+
+        return output
+
     async def send_command(
         self,
         command_string,
@@ -465,9 +481,10 @@ class BaseDevice(object):
         # Send config commands
         logger.debug("Host {}: Config commands: {}".format(self._host, config_commands))
         output = ""
+        config_commands = ['\n'] + config_commands
         for cmd in config_commands:
-            self._stdin.write(self._normalize_cmd(cmd))
-            output += await self._read_until_prompt()
+            #self._stdin.write(self._normalize_cmd(cmd))
+            output += await self.send_command_expect(cmd)
 
         if self._ansi_escape_codes:
             output = self._strip_ansi_escape_codes(output)

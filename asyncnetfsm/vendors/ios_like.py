@@ -161,7 +161,8 @@ class IOSLikeDevice(BaseDevice):
             return ""
 
         # Send config commands
-        output = await self.config_mode()
+        await self.config_mode()
+        output = ''
         output += await super().send_config_set(config_commands=config_commands)
 
         if exit_config_mode:
