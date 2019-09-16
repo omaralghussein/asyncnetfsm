@@ -1,4 +1,4 @@
-from asyncnetfsm.exceptions import CommitError
+from asyncnetfsm.exceptions import AsyncnetfsmCommitError
 from asyncnetfsm.logger import logger
 from asyncnetfsm.vendors.ios_like import IOSLikeDevice
 
@@ -61,14 +61,14 @@ class CiscoIOSXR(IOSLikeDevice):
                 reason = await self.send_command(
                     self._normalize_cmd(show_config_failed)
                 )
-                raise CommitError(self._host, reason)
+                raise AsyncnetfsmCommitError(self._host, reason)
             if "One or more commits have occurred" in output:
                 show_commit_changes = type(self)._show_commit_changes
                 self._stdin.write(self._normalize_cmd("no"))
                 reason = await self.send_command(
                     self._normalize_cmd(show_commit_changes)
                 )
-                raise CommitError(self._host, reason)
+                raise AsyncnetfsmCommitError(self._host, reason)
 
         if exit_config_mode:
             output += await self.exit_config_mode()
