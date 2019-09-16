@@ -1,7 +1,7 @@
 import asyncssh
 import asyncio
 
-from asyncnetfsm.exceptions import DisconnectError, TimeoutError
+from asyncnetfsm.exceptions import AsyncnetfsmAuthenticationError, AsyncnetfsmTimeoutError
 from asyncnetfsm.logger import logger
 from asyncnetfsm.vendors.base import BaseDevice
 
@@ -65,9 +65,9 @@ class MikrotikRouterOS(BaseDevice):
         try:
             self._conn = await asyncio.wait_for(fut, self._timeout)
         except asyncssh.DisconnectError as e:
-            raise DisconnectError(self._host, e.code, e.reason)
+            raise AsyncnetfsmAuthenticationError(self._host, e.code, e.reason)
         except asyncio.TimeoutError:
-            raise TimeoutError(self._host)
+            raise AsyncnetfsmTimeoutError(self._host)
         self._stdin, self._stdout, self._stderr = await self._conn.open_session(
             term_type="Dumb"
         )

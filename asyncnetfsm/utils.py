@@ -4,7 +4,7 @@ Utilities Module.
 import re
 import os
 from clitable import CliTable, CliTableError
-from aionet.constants import CODE_SET, CODE_NEXT_LINE
+from .constants import CODE_SET, CODE_NEXT_LINE
 
 
 def strip_ansi_escape_codes(string):

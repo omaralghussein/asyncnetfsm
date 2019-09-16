@@ -98,7 +98,6 @@ class JunOSLikeDevice(BaseDevice):
         )
         return output
 
-
     async def _set_base_prompt(self):
         """
         Setting two important vars

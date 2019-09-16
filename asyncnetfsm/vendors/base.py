@@ -9,7 +9,7 @@ import re
 
 import asyncssh
 
-from asyncnetfsm.exceptions import TimeoutError, DisconnectError
+from asyncnetfsm.exceptions import AsyncnetfsmAuthenticationError, AsyncnetfsmTimeoutError
 from asyncnetfsm.logger import logger
 from asyncnetfsm import utils
 
@@ -36,7 +36,7 @@ class BaseDevice(object):
         pattern=None,
         agent_forwarding=False,
         agent_path=(),
-        client_version=u"netdev",
+        client_version=u"AsyncNetFSM",
         family=0,
         kex_algs=(),
         encryption_algs=(),
@@ -218,9 +218,9 @@ class BaseDevice(object):
         try:
             self._conn = await asyncio.wait_for(fut, self._timeout)
         except asyncssh.DisconnectError as e:
-            raise DisconnectError(self._host, e.code, e.reason)
+            raise AsyncnetfsmAuthenticationError(self._host, e.code, e.reason)
         except asyncio.TimeoutError:
-            raise TimeoutError(self._host)
+            raise AsyncnetfsmTimeoutError(self._host)
         self._stdin, self._stdout, self._stderr = await self._conn.open_session(
             term_type="Dumb", term_size=(200, 24)
         )
