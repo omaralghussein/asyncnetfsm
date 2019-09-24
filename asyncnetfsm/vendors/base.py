@@ -20,29 +20,31 @@ class BaseDevice(object):
     """
 
     def __init__(
-        self,
-        host=u"",
-        username=u"",
-        password=u"",
-        port=22,
-        device_type=u"",
-        timeout=15,
-        loop=None,
-        known_hosts=None,
-        local_addr=None,
-        client_keys=None,
-        passphrase=None,
-        tunnel=None,
-        pattern=None,
-        agent_forwarding=False,
-        agent_path=(),
-        client_version=u"AsyncNetFSM",
-        family=0,
-        kex_algs=(),
-        encryption_algs=(),
-        mac_algs=(),
-        compression_algs=(),
-        signature_algs=(),
+            self,
+            ip=u"",
+            host=u"",
+            username=u"",
+            password=u"",
+            port=None,
+            protocol='ssh',
+            device_type=u"",
+            timeout=15,
+            loop=None,
+            known_hosts=None,
+            local_addr=None,
+            client_keys=None,
+            passphrase=None,
+            tunnel=None,
+            pattern=None,
+            agent_forwarding=False,
+            agent_path=(),
+            client_version=u"AsyncNetFSM",
+            family=0,
+            kex_algs=(),
+            encryption_algs=(),
+            mac_algs=(),
+            compression_algs=(),
+            signature_algs=(),
     ):
         """
         Initialize base class for asynchronous working with network devices
@@ -123,11 +125,12 @@ class BaseDevice(object):
         :type compression_algs: list[str]
         :type signature_algs: list[str]
         """
-        if host:
-            self._host = host
+        if ip:
+            self._host = ip
+            self.host = ip
         else:
             raise ValueError("Host must be set")
-        self._port = int(port)
+        self._protocol = protocol
         self._device_type = device_type
         self._timeout = timeout
         if loop is None:
@@ -136,27 +139,30 @@ class BaseDevice(object):
             self._loop = loop
 
         """Convert needed connect params to a dictionary for simplicity"""
-        self._connect_params_dict = {
-            "host": self._host,
-            "port": self._port,
-            "username": username,
-            "password": password,
-            "known_hosts": known_hosts,
-            "local_addr": local_addr,
-            "client_keys": client_keys,
-            "passphrase": passphrase,
-            "tunnel": tunnel,
-            "agent_forwarding": agent_forwarding,
-            "loop": loop,
-            "family": family,
-            "agent_path": agent_path,
-            "client_version": client_version,
-            "kex_algs": kex_algs,
-            "encryption_algs": encryption_algs,
-            "mac_algs": mac_algs,
-            "compression_algs": compression_algs,
-            "signature_algs": signature_algs,
-        }
+        if self._protocol == 'ssh':
+            self._port = port or 22
+            self._port = int(self._port)
+            self._connect_params_dict = {
+                "host": self.host,
+                "port": self._port,
+                "username": username,
+                "password": password,
+                "known_hosts": known_hosts,
+                "local_addr": local_addr,
+                "client_keys": client_keys,
+                "passphrase": passphrase,
+                "tunnel": tunnel,
+                "agent_forwarding": agent_forwarding,
+                "loop": loop,
+                "family": family,
+                "agent_path": agent_path,
+                "client_version": client_version,
+                "kex_algs": kex_algs,
+                "encryption_algs": encryption_algs,
+                "mac_algs": mac_algs,
+                "compression_algs": compression_algs,
+                "signature_algs": signature_algs,
+            }
 
         if pattern is not None:
             self._pattern = pattern
@@ -220,7 +226,7 @@ class BaseDevice(object):
         except asyncssh.DisconnectError as e:
             raise AsyncnetfsmAuthenticationError(self._host, e.code, e.reason)
         except asyncio.TimeoutError:
-            raise AsyncnetfsmTimeoutError(self._host)
+            raise AsyncnetfsmTimeoutError(self._host, None, 'Timeout while connecting to %r' % self._host)
         self._stdin, self._stdout, self._stderr = await self._conn.open_session(
             term_type="Dumb", term_size=(200, 24)
         )
@@ -309,13 +315,13 @@ class BaseDevice(object):
         return output
 
     async def send_command(
-        self,
-        command_string,
-        pattern="",
-        re_flags=0,
-        strip_command=True,
-        strip_prompt=True,
-        use_textfsm=False
+            self,
+            command_string,
+            pattern="",
+            re_flags=0,
+            strip_command=True,
+            strip_prompt=True,
+            use_textfsm=False
     ):
         """
         Sending command to device (support interactive commands with pattern)
@@ -352,7 +358,7 @@ class BaseDevice(object):
             "Host {}: Send command output: {}".format(self._host, repr(output))
         )
         return output
-    
+
     async def _flush_buffer(self):
         """ flush unnecessary data """
         logger.debug("Flushing buffers")
@@ -411,7 +417,7 @@ class BaseDevice(object):
             except asyncio.TimeoutError:
                 raise TimeoutError(self._host)
             if re.search(pattern, output, flags=re_flags) or re.search(
-                base_prompt_pattern, output, flags=re_flags
+                    base_prompt_pattern, output, flags=re_flags
             ):
                 logger.debug(
                     "Host {}: Reading pattern '{}' or '{}' was found: {}".format(
@@ -483,7 +489,7 @@ class BaseDevice(object):
         output = ""
         config_commands = ['\n'] + config_commands
         for cmd in config_commands:
-            #self._stdin.write(self._normalize_cmd(cmd))
+            # self._stdin.write(self._normalize_cmd(cmd))
             output += await self.send_command_expect(cmd)
 
         if self._ansi_escape_codes:
@@ -570,6 +576,6 @@ class BaseDevice(object):
     async def disconnect(self):
         """ Gracefully close the SSH connection """
         logger.info("Host {}: Disconnecting".format(self._host))
-#        await self._cleanup()
+        #        await self._cleanup()
         self._conn.close()
         await self._conn.wait_closed()
