@@ -314,6 +314,21 @@ class BaseDevice(object):
 
         return output
 
+    async def send_command_timing(self,
+                                  command_string,
+                                  read_for_seconds=2):
+        """
+        send command and keep reading for the specified time in wait or until_prompt
+        :param command_string: command
+        :type command_string: str
+        :param read_for_seconds: seconds of reading
+        :type read_for_seconds: int
+        :return: command output
+        """
+
+        output = await self.send_command_expect(command_string, read_for=read_for_seconds)
+        return output
+
     async def send_command(
             self,
             command_string,
