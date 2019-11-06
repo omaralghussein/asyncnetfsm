@@ -310,7 +310,7 @@ class BaseDevice(object):
             output = await self._read_until_prompt_or_pattern(pattern, re_flags)
 
         else:
-            output = await self._read_until_prompt()
+            output = await self._read_until_prompt(read_for=read_for)
 
         return output
 
@@ -393,11 +393,11 @@ class BaseDevice(object):
         else:
             return a_string
 
-    async def _read_until_prompt(self):
+    async def _read_until_prompt(self, read_for=0):
         """Read channel until self.base_pattern detected. Return ALL data available"""
-        return await self._read_until_pattern(self._base_pattern)
+        return await self._read_until_pattern(self._base_pattern, read_for=read_for)
 
-    async def _read_until_pattern(self, pattern="", re_flags=0):
+    async def _read_until_pattern(self, pattern="", re_flags=0, read_for=0):
         """Read channel until pattern detected. Return ALL data available"""
         output = ""
         logger.info("Host {}: Reading until pattern".format(self._host))
@@ -407,8 +407,10 @@ class BaseDevice(object):
         while True:
             fut = self._stdout.read(self._MAX_BUFFER)
             try:
-                output += await asyncio.wait_for(fut, self._timeout)
+                output += await asyncio.wait_for(fut, read_for or self._timeout)
             except asyncio.TimeoutError:
+                if read_for:
+                    return output
                 raise TimeoutError(self._host)
             if re.search(pattern, output, flags=re_flags):
                 logger.debug(
@@ -591,6 +593,6 @@ class BaseDevice(object):
     async def disconnect(self):
         """ Gracefully close the SSH connection """
         logger.info("Host {}: Disconnecting".format(self._host))
-        #        await self._cleanup()
+        await self._cleanup()
         self._conn.close()
         await self._conn.wait_closed()

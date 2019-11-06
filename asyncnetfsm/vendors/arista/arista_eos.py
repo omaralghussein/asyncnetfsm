@@ -38,6 +38,6 @@ class AristaEOS(IOSLikeDevice):
     _config_exit = "end"
     """Command for existing from configuration mode to privilege exec"""
 
-    _config_check = "(config)#"
+    _config_check = ")#"
     """Checking string in prompt. If it's exist im prompt - we are in configuration mode"""
     pass
