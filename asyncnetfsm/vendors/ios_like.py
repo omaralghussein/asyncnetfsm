@@ -82,8 +82,8 @@ class IOSLikeDevice(BaseDevice):
         """Check if we are in privilege exec. Return boolean"""
         logger.info("Host {}: Checking privilege exec".format(self._host))
         check_string = type(self)._priv_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         return check_string in output
 
     async def enable_mode(self, pattern="password", re_flags=re.IGNORECASE):
@@ -92,13 +92,13 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         enable_command = type(self)._priv_enter
         if not await self.check_enable_mode():
-            self._stdin.write(self._normalize_cmd(enable_command))
-            output += await self._read_until_prompt_or_pattern(
+            self._conn.send(self._normalize_cmd(enable_command))
+            output += await self._conn.read_until_prompt_or_pattern(
                 pattern=pattern, re_flags=re_flags
             )
             if re.search(pattern, output, re_flags):
-                self._stdin.write(self._normalize_cmd(self._secret))
-                output += await self._read_until_prompt()
+                self._conn.send(self._normalize_cmd(self._secret))
+                output += await self._conn.read_until_prompt()
             if not await self.check_enable_mode():
                 raise ValueError("Failed to enter to privilege exec")
         return output
@@ -109,8 +109,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         exit_enable = type(self)._priv_exit
         if await self.check_enable_mode():
-            self._stdin.write(self._normalize_cmd(exit_enable))
-            output += await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(exit_enable))
+            output += await self._conn.read_until_prompt()
             if await self.check_enable_mode():
                 raise ValueError("Failed to exit from privilege exec")
         return output
@@ -119,8 +119,8 @@ class IOSLikeDevice(BaseDevice):
         """Checks if the device is in configuration mode or not"""
         logger.info("Host {}: Checking configuration mode".format(self._host))
         check_string = type(self)._config_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         return check_string in output
 
     async def config_mode(self):
@@ -129,8 +129,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         config_command = type(self)._config_enter
         if not await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(config_command))
-            output = await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(config_command))
+            output = await self._conn.read_until_prompt()
             if not await self.check_config_mode():
                 raise ValueError("Failed to enter to configuration mode")
         return output
@@ -141,8 +141,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         exit_config = type(self)._config_exit
         if await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(exit_config))
-            output = await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(exit_config))
+            output = await self._conn.read_until_prompt()
             if await self.check_config_mode():
                 raise ValueError("Failed to exit from configuration mode")
         return output
