@@ -59,24 +59,11 @@ class IOSLikeDevice(BaseDevice):
     _config_check = ")#"
     """Checking string in prompt. If it's exist im prompt - we are in configuration mode"""
 
-    async def connect(self):
-        """
-        Basic asynchronous connection method for Cisco IOS like devices
-
-        It connects to device and makes some preparation steps for working.
-        Usual using 4 functions:
-
-        * _establish_connection() for connecting to device
-        * _set_base_prompt() for finding and setting device prompt
-        * _enable() for getting privilege exec mode
-        * _disable_paging() for non interact output in commands
-        """
-        logger.info("Host {}: Trying to connect to the device".format(self._host))
-        await self._establish_connection()
-        await self._set_base_prompt()
+    async def _session_preparation(self):
+        await super()._session_preparation()
         await self.enable_mode()
         await self._disable_paging()
-        logger.info("Host {}: Has connected to the device".format(self._host))
+        # await self._disable_width()
 
     async def check_enable_mode(self):
         """Check if we are in privilege exec. Return boolean"""
@@ -172,6 +159,40 @@ class IOSLikeDevice(BaseDevice):
         logger.debug(
             "Host {}: Config commands output: {}".format(self._host, repr(output))
         )
+        return output
+
+    async def _disable_paging(self):
+        """Disable paging method"""
+        logger.info("Host {}: Trying to disable paging".format(self._host))
+        command = type(self)._disable_paging_command
+        command = self._normalize_cmd(command)
+        logger.debug(
+            "Host {}: Disable paging command: {}".format(self._host, repr(command))
+        )
+        self._conn.send(command)
+        output = await self._conn.read_until_prompt()
+        logger.debug(
+            "Host {}: Disable paging output: {}".format(self._host, repr(output))
+        )
+        if self._ansi_escape_codes:
+            output = self._strip_ansi_escape_codes(output)
+        return output
+
+    async def _disable_width(self):
+        """Disable paging method"""
+        logger.info("Host {}: Trying to disable paging".format(self._host))
+        command = type(self)._disable_paging_command
+        command = self._normalize_cmd(command)
+        logger.debug(
+            "Host {}: Disable paging command: {}".format(self._host, repr(command))
+        )
+        self._conn.send(command)
+        output = await self._conn.read_until_prompt()
+        logger.debug(
+            "Host {}: Disable paging output: {}".format(self._host, repr(output))
+        )
+        if self._ansi_escape_codes:
+            output = self._strip_ansi_escape_codes(output)
         return output
 
     async def _cleanup(self):

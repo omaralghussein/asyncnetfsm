@@ -52,8 +52,8 @@ class CiscoIOSXR(IOSLikeDevice):
             if commit_comment:
                 commit = type(self)._commit_comment_command.format(commit_comment)
 
-            self._stdin.write(self._normalize_cmd(commit))
-            output += await self._read_until_prompt_or_pattern(
+            self._conn.send(self._normalize_cmd(commit))
+            output += await self._conn.read_until_prompt_or_pattern(
                 r"Do you wish to proceed with this commit anyway\?"
             )
             if "Failed to commit" in output:
@@ -64,7 +64,7 @@ class CiscoIOSXR(IOSLikeDevice):
                 raise AsyncnetfsmCommitError(self._host, reason)
             if "One or more commits have occurred" in output:
                 show_commit_changes = type(self)._show_commit_changes
-                self._stdin.write(self._normalize_cmd("no"))
+                self._conn.send(self._normalize_cmd("no"))
                 reason = await self.send_command(
                     self._normalize_cmd(show_commit_changes)
                 )
@@ -85,13 +85,13 @@ class CiscoIOSXR(IOSLikeDevice):
         output = ""
         exit_config = type(self)._config_exit
         if await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(exit_config))
-            output = await self._read_until_prompt_or_pattern(
+            self._conn.send(self._normalize_cmd(exit_config))
+            output = await self._conn.read_until_prompt_or_pattern(
                 r"Uncommitted changes found"
             )
             if "Uncommitted changes found" in output:
-                self._stdin.write(self._normalize_cmd("no"))
-                output += await self._read_until_prompt()
+                self._conn.send(self._normalize_cmd("no"))
+                output += await self._conn.read_until_prompt()
             if await self.check_config_mode():
                 raise ValueError("Failed to exit from configuration mode")
         return output
@@ -100,5 +100,5 @@ class CiscoIOSXR(IOSLikeDevice):
         """ Any needed cleanup before closing connection """
         abort = type(self)._abort_command
         abort = self._normalize_cmd(abort)
-        self._stdin.write(abort)
+        self._conn.send(abort)
         logger.info("Host {}: Cleanup session".format(self._host))

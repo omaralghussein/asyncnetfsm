@@ -49,8 +49,8 @@ class AristaEOS(IOSLikeDevice):
         output = ""
         exit_config = type(self)._config_exit
         if await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(exit_config))
-            output = await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(exit_config))
+            output = await self._conn.read_until_prompt()
             output = output.replace("(s1)", "")
             output = output.replace("(s2)", "")
             if await self.check_config_mode():
@@ -61,8 +61,8 @@ class AristaEOS(IOSLikeDevice):
         """Checks if the device is in configuration mode or not"""
         logger.info("Host {}: Checking configuration mode".format(self._host))
         check_string = type(self)._config_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         output = output.replace("(s1)", "")
         output = output.replace("(s2)", "")
         return check_string in output

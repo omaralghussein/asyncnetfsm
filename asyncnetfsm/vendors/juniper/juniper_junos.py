@@ -33,8 +33,8 @@ class JuniperJunOS(JunOSLikeDevice):
         """Check if we are in cli mode. Return boolean"""
         logger.info("Host {}: Checking shell mode".format(self._host))
         cli_check = type(self)._cli_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         return cli_check in output
 
     async def cli_mode(self):
@@ -43,8 +43,8 @@ class JuniperJunOS(JunOSLikeDevice):
         output = ""
         cli_command = type(self)._cli_command
         if not await self.check_cli_mode():
-            self._stdin.write(self._normalize_cmd(cli_command))
-            output += await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(cli_command))
+            output += await self._conn.read_until_prompt()
             if not await self.check_cli_mode():
                 raise ValueError("Failed to enter to cli mode")
         return output

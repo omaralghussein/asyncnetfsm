@@ -58,12 +58,10 @@ class BaseConnection(IConnection):
 
         if pattern is None:
             raise ValueError("pattern cannot be None")
-        print(pattern)
-        if not pattern:
-            pattern = self._base_pattern
 
         if isinstance(pattern, str):
             pattern = [pattern]
+
         output = ""
         logger.info("Host {}: Reading until pattern".format(self._host))
 
@@ -77,7 +75,6 @@ class BaseConnection(IConnection):
                 if read_for:
                     return output
                 raise TimeoutError(self._host)
-
             for exp in pattern:
                 if re.search(exp, output, flags=re_flags):
                     logger.debug(
@@ -89,7 +86,6 @@ class BaseConnection(IConnection):
 
     async def read_until_prompt(self, read_for=0):
         """ read util prompt """
-        print('ss'+self._base_pattern)
         return await self.read_until_pattern(self._base_pattern, read_for=read_for)
 
     async def read_until_prompt_or_pattern(self, pattern, re_flags=0, read_for=0):

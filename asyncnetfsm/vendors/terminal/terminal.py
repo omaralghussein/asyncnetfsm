@@ -57,4 +57,4 @@ class Terminal(BaseDevice):
         pattern = type(self)._pattern
         self._base_pattern = pattern.format(delimiters=delimiters)
         logger.debug("Host {}: Base Pattern: {}".format(self._host, self._base_pattern))
-        return self._base_prompt
+        return self._conn.base_prompt
