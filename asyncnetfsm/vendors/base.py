@@ -6,12 +6,14 @@ Connections Method are based upon AsyncSSH and should be running in asyncio loop
 
 import asyncio
 import re
+import time
 
 import asyncssh
 
-from asyncnetfsm.exceptions import AsyncnetfsmAuthenticationError, AsyncnetfsmTimeoutError
+from asyncnetfsm.exceptions import AsyncnetfsmAuthenticationError, AsyncnetfsmTimeoutError,AsyncnetfsmConnectionError
 from asyncnetfsm.logger import logger
 from asyncnetfsm import utils
+from asyncnetfsm.connections import TelnetConnection, SSHConnection
 
 
 class BaseDevice(object):
@@ -95,7 +97,7 @@ class BaseDevice(object):
             A list of public key signature algorithms to use during the SSH
             handshake, taken from `signature algorithms
             <https://asyncssh.readthedocs.io/en/latest/api.html#signaturealgs>`_
-        
+
 
         :type host: str
         :type username: str
@@ -163,14 +165,28 @@ class BaseDevice(object):
                 "compression_algs": compression_algs,
                 "signature_algs": signature_algs,
             }
+        elif self._protocol == 'telnet':
+            self._port = port or 23
+            self._port = int(self._port)
+            self._connect_params_dict = {
+                "host": self.host,
+                "port": self._port,
+                "username": username,
+                "password": password,
+            }
+        else:
+            raise ValueError("unknown protocol {} , only telnet and ssh supported".format(self._protocol))
+        self.current_terminal = None
 
         if pattern is not None:
             self._pattern = pattern
 
         # Filling internal vars
-        self._stdin = self._stdout = self._stderr = self._conn = None
-        self._base_prompt = self._base_pattern = ""
+        # self._stdin = self._stdout = self._stderr = self._conn = None
+        # self._base_prompt = self._base_pattern = ""
         self._MAX_BUFFER = 65535
+        self.device_prompt = ''
+        self.prompt_pattern = ''
         self._ansi_escape_codes = False
 
     _delimiter_list = [">", "#"]
@@ -184,8 +200,8 @@ class BaseDevice(object):
 
     @property
     def base_prompt(self):
-        """Returning base prompt for this network device"""
-        return self._base_prompt
+         """Returning base prompt for this network device"""
+         return self.base_prompt
 
     async def __aenter__(self):
         """Async Context Manager"""
@@ -208,37 +224,34 @@ class BaseDevice(object):
         * _disable_paging() for non interactive output in commands
         """
         logger.info("Host {}: Trying to connect to the device".format(self._host))
-        await self._establish_connection()
-        await self._set_base_prompt()
-        await self._disable_paging()
-        logger.info("Host {}: Has connected to the device".format(self._host))
+        logger.info("Trying to connect to the device")
+        try:
+            await self._establish_connection()
+        except OSError as e:
+            raise AsyncnetfsmConnectionError(self.host, None, str(e))
+        await self._session_preparation()
+        logger.info("Has connected to the device")
 
     async def _establish_connection(self):
         """Establishing SSH connection to the network device"""
-        logger.info(
-            "Host {}: Establishing connection to port {}".format(self._host, self._port)
-        )
-        output = ""
+        logger.info("Establishing connection")
         # initiate SSH connection
-        fut = asyncssh.connect(**self._connect_params_dict)
-        try:
-            self._conn = await asyncio.wait_for(fut, self._timeout)
-        except asyncssh.DisconnectError as e:
-            raise AsyncnetfsmAuthenticationError(self._host, e.code, e.reason)
-        except asyncio.TimeoutError:
-            raise AsyncnetfsmTimeoutError(self._host, None, 'Timeout while connecting to %r' % self._host)
-        self._stdin, self._stdout, self._stderr = await self._conn.open_session(
-            term_type="Dumb", term_size=(200, 24)
-        )
-        logger.info("Host {}: Connection is established".format(self._host))
-        # Flush unnecessary data
-        delimiters = map(re.escape, type(self)._delimiter_list)
-        delimiters = r"|".join(delimiters)
-        output = await self._read_until_pattern(delimiters)
-        logger.info(
-            "Host {}: Establish Connection Output: {}".format(self._host, repr(output))
-        )
-        return output
+        if self._protocol == 'ssh':
+            conn = SSHConnection(**self._connect_params_dict)
+        elif self._protocol == 'telnet':
+            conn = TelnetConnection(**self._connect_params_dict)
+        else:
+            raise ValueError("only SSH connection is supported")
+
+        await conn.connect()
+        self._conn = conn
+        logger.info("Connection is established")
+        return self._conn
+
+    async def _session_preparation(self):
+        """ Prepare session before start using it """
+        await self._flush_buffer()
+        await self._set_base_prompt()
 
     async def _set_base_prompt(self):
         """
@@ -249,45 +262,36 @@ class BaseDevice(object):
 
         For Cisco devices base_pattern is "prompt(\(.*?\))?[#|>]
         """
-        logger.info("Host {}: Setting base prompt".format(self._host))
+        logger.info("Setting base prompt")
         prompt = await self._find_prompt()
 
         # Strip off trailing terminator
-        self._base_prompt = prompt[:-1]
+        base_prompt = prompt[:-1]
+        self.device_prompt = base_prompt
+        if not base_prompt:
+            raise ValueError("unable to find base_prompt")
+        self._conn.set_base_prompt(base_prompt)
+
         delimiters = map(re.escape, type(self)._delimiter_list)
         delimiters = r"|".join(delimiters)
-        base_prompt = re.escape(self._base_prompt[:12])
+        base_prompt = re.escape(base_prompt[:12])
         pattern = type(self)._pattern
-        self._base_pattern = pattern.format(prompt=base_prompt, delimiters=delimiters)
-        logger.info("Host {}: Base Prompt: {}".format(self._host, self._base_prompt))
-        logger.info("Host {}: Base Pattern: {}".format(self._host, self._base_pattern))
-        return self._base_prompt
-
-    async def _disable_paging(self):
-        """Disable paging method"""
-        logger.info("Host {}: Trying to disable paging".format(self._host))
-        command = type(self)._disable_paging_command
-        command = self._normalize_cmd(command)
-        logger.debug(
-            "Host {}: Disable paging command: {}".format(self._host, repr(command))
-        )
-        self._stdin.write(command)
-        output = await self._read_until_prompt()
-        logger.debug(
-            "Host {}: Disable paging output: {}".format(self._host, repr(output))
-        )
-        if self._ansi_escape_codes:
-            output = self._strip_ansi_escape_codes(output)
-        return output
+        base_pattern = pattern.format(prompt=base_prompt, delimiters=delimiters)
+        logger.debug("Base Prompt: %s" % base_prompt)
+        logger.debug("Base Pattern: %s" % base_pattern)
+        if not base_pattern:
+            raise ValueError("unable to find base_pattern")
+        self.prompt_pattern = base_pattern
+        self._conn.set_base_pattern(base_pattern)
 
     async def _find_prompt(self):
         """Finds the current network device prompt, last line only"""
         logger.info("Host {}: Finding prompt".format(self._host))
-        self._stdin.write(self._normalize_cmd("\n"))
+        self._conn.send(self._normalize_cmd("\n"))
         prompt = ""
         delimiters = map(re.escape, type(self)._delimiter_list)
         delimiters = r"|".join(delimiters)
-        prompt = await self._read_until_pattern(delimiters)
+        prompt = await self._conn.read_until_pattern(delimiters)
         prompt = prompt.strip()
         if self._ansi_escape_codes:
             prompt = self._strip_ansi_escape_codes(prompt)
@@ -303,14 +307,14 @@ class BaseDevice(object):
                                   re_flags=0, dont_read=False,
                                   read_for=0):
         """ Send a single line of command and readuntil prompte"""
-        self._stdin.write(self._normalize_cmd(command))
+        self._conn.send(self._normalize_cmd(command))
         if dont_read:
             return ''
         if pattern:
-            output = await self._read_until_prompt_or_pattern(pattern, re_flags)
+            output = await self._conn.read_until_prompt_or_pattern(pattern, re_flags)
 
         else:
-            output = await self._read_until_prompt(read_for=read_for)
+            output = await self._conn.read_until_prompt(read_for=read_for)
 
         return output
 
@@ -354,8 +358,8 @@ class BaseDevice(object):
         logger.info(
             "Host {}: Send command: {}".format(self._host, repr(command_string))
         )
-        self._stdin.write(command_string)
-        output = await self._read_until_pattern(pattern, re_flags)
+        # self._conn.send(command_string)
+        output = await self.send_command_expect(command_string, pattern, re_flags)
 
         # Some platforms have ansi_escape codes
         if self._ansi_escape_codes:
@@ -381,67 +385,18 @@ class BaseDevice(object):
         delimiters = map(re.escape, type(self)._delimiter_list)
         delimiters = r"|".join(delimiters)
         # await self.send_new_line(pattern=delimiters)
-        await self._read_until_pattern(delimiters)
+        await self._conn.read_until_pattern(delimiters)
 
     def _strip_prompt(self, a_string):
         """Strip the trailing router prompt from the output"""
         logger.info("Host {}: Stripping prompt".format(self._host))
         response_list = a_string.split("\n")
         last_line = response_list[-1]
-        if self._base_prompt in last_line:
+        if self._conn._base_prompt in last_line:
             return "\n".join(response_list[:-1])
         else:
             return a_string
 
-    async def _read_until_prompt(self, read_for=0):
-        """Read channel until self.base_pattern detected. Return ALL data available"""
-        return await self._read_until_pattern(self._base_pattern, read_for=read_for)
-
-    async def _read_until_pattern(self, pattern="", re_flags=0, read_for=0):
-        """Read channel until pattern detected. Return ALL data available"""
-        output = ""
-        logger.info("Host {}: Reading until pattern".format(self._host))
-        if not pattern:
-            pattern = self._base_pattern
-        logger.info("Host {}: Reading pattern: {}".format(self._host, pattern))
-        while True:
-            fut = self._stdout.read(self._MAX_BUFFER)
-            try:
-                output += await asyncio.wait_for(fut, read_for or self._timeout)
-            except asyncio.TimeoutError:
-                if read_for:
-                    return output
-                raise TimeoutError(self._host)
-            if re.search(pattern, output, flags=re_flags):
-                logger.debug(
-                    "Host {}: Reading pattern '{}' was found: {}".format(
-                        self._host, pattern, repr(output)
-                    )
-                )
-                return output
-
-    async def _read_until_prompt_or_pattern(self, pattern="", re_flags=0):
-        """Read until either self.base_pattern or pattern is detected. Return ALL data available"""
-        output = ""
-        logger.info("Host {}: Reading until prompt or pattern".format(self._host))
-        if not pattern:
-            pattern = self._base_pattern
-        base_prompt_pattern = self._base_pattern
-        while True:
-            fut = self._stdout.read(self._MAX_BUFFER)
-            try:
-                output += await asyncio.wait_for(fut, self._timeout)
-            except asyncio.TimeoutError:
-                raise TimeoutError(self._host)
-            if re.search(pattern, output, flags=re_flags) or re.search(
-                    base_prompt_pattern, output, flags=re_flags
-            ):
-                logger.debug(
-                    "Host {}: Reading pattern '{}' or '{}' was found: {}".format(
-                        self._host, pattern, base_prompt_pattern, repr(output)
-                    )
-                )
-                return output
 
     @staticmethod
     def _strip_backspaces(output):
@@ -506,7 +461,7 @@ class BaseDevice(object):
         output = ""
         config_commands = ['\n'] + config_commands
         for cmd in config_commands:
-            # self._stdin.write(self._normalize_cmd(cmd))
+            self._conn.send(self._normalize_cmd(cmd))
             output += await self.send_command_expect(cmd)
 
         if self._ansi_escape_codes:
@@ -590,9 +545,27 @@ class BaseDevice(object):
         logger.info("Host {}: Cleanup session".format(self._host))
         pass
 
+    async def _disable_paging(self):
+        """Disable paging method"""
+        logger.info("Host {}: Trying to disable paging".format(self._host))
+        command = type(self)._disable_paging_command
+        command = self._normalize_cmd(command)
+        logger.debug(
+            "Host {}: Disable paging command: {}".format(self._host, repr(command))
+        )
+        self._conn.send(command)
+        output = await self._conn.read_until_prompt()
+        logger.debug(
+            "Host {}: Disable paging output: {}".format(self._host, repr(output))
+        )
+        if self._ansi_escape_codes:
+            output = self._strip_ansi_escape_codes(output)
+        return output
+
+
     async def disconnect(self):
         """ Gracefully close the SSH connection """
         logger.info("Host {}: Disconnecting".format(self._host))
         await self._cleanup()
-        self._conn.close()
-        await self._conn.wait_closed()
+        await self._conn.close()
+        # await self._conn.wait_closed()

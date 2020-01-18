@@ -59,31 +59,18 @@ class IOSLikeDevice(BaseDevice):
     _config_check = ")#"
     """Checking string in prompt. If it's exist im prompt - we are in configuration mode"""
 
-    async def connect(self):
-        """
-        Basic asynchronous connection method for Cisco IOS like devices
-
-        It connects to device and makes some preparation steps for working.
-        Usual using 4 functions:
-
-        * _establish_connection() for connecting to device
-        * _set_base_prompt() for finding and setting device prompt
-        * _enable() for getting privilege exec mode
-        * _disable_paging() for non interact output in commands
-        """
-        logger.info("Host {}: Trying to connect to the device".format(self._host))
-        await self._establish_connection()
-        await self._set_base_prompt()
+    async def _session_preparation(self):
+        await super()._session_preparation()
         await self.enable_mode()
         await self._disable_paging()
-        logger.info("Host {}: Has connected to the device".format(self._host))
+        # await self._disable_width()
 
     async def check_enable_mode(self):
         """Check if we are in privilege exec. Return boolean"""
         logger.info("Host {}: Checking privilege exec".format(self._host))
         check_string = type(self)._priv_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         return check_string in output
 
     async def enable_mode(self, pattern="password", re_flags=re.IGNORECASE):
@@ -92,13 +79,13 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         enable_command = type(self)._priv_enter
         if not await self.check_enable_mode():
-            self._stdin.write(self._normalize_cmd(enable_command))
-            output += await self._read_until_prompt_or_pattern(
+            self._conn.send(self._normalize_cmd(enable_command))
+            output += await self._conn.read_until_prompt_or_pattern(
                 pattern=pattern, re_flags=re_flags
             )
             if re.search(pattern, output, re_flags):
-                self._stdin.write(self._normalize_cmd(self._secret))
-                output += await self._read_until_prompt()
+                self._conn.send(self._normalize_cmd(self._secret))
+                output += await self._conn.read_until_prompt()
             if not await self.check_enable_mode():
                 raise ValueError("Failed to enter to privilege exec")
         return output
@@ -109,8 +96,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         exit_enable = type(self)._priv_exit
         if await self.check_enable_mode():
-            self._stdin.write(self._normalize_cmd(exit_enable))
-            output += await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(exit_enable))
+            output += await self._conn.read_until_prompt()
             if await self.check_enable_mode():
                 raise ValueError("Failed to exit from privilege exec")
         return output
@@ -119,8 +106,8 @@ class IOSLikeDevice(BaseDevice):
         """Checks if the device is in configuration mode or not"""
         logger.info("Host {}: Checking configuration mode".format(self._host))
         check_string = type(self)._config_check
-        self._stdin.write(self._normalize_cmd("\n"))
-        output = await self._read_until_prompt()
+        self._conn.send(self._normalize_cmd("\n"))
+        output = await self._conn.read_until_prompt()
         return check_string in output
 
     async def config_mode(self):
@@ -129,8 +116,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         config_command = type(self)._config_enter
         if not await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(config_command))
-            output = await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(config_command))
+            output = await self._conn.read_until_prompt()
             if not await self.check_config_mode():
                 raise ValueError("Failed to enter to configuration mode")
         return output
@@ -141,8 +128,8 @@ class IOSLikeDevice(BaseDevice):
         output = ""
         exit_config = type(self)._config_exit
         if await self.check_config_mode():
-            self._stdin.write(self._normalize_cmd(exit_config))
-            output = await self._read_until_prompt()
+            self._conn.send(self._normalize_cmd(exit_config))
+            output = await self._conn.read_until_prompt()
             if await self.check_config_mode():
                 raise ValueError("Failed to exit from configuration mode")
         return output
@@ -172,6 +159,40 @@ class IOSLikeDevice(BaseDevice):
         logger.debug(
             "Host {}: Config commands output: {}".format(self._host, repr(output))
         )
+        return output
+
+    async def _disable_paging(self):
+        """Disable paging method"""
+        logger.info("Host {}: Trying to disable paging".format(self._host))
+        command = type(self)._disable_paging_command
+        command = self._normalize_cmd(command)
+        logger.debug(
+            "Host {}: Disable paging command: {}".format(self._host, repr(command))
+        )
+        self._conn.send(command)
+        output = await self._conn.read_until_prompt()
+        logger.debug(
+            "Host {}: Disable paging output: {}".format(self._host, repr(output))
+        )
+        if self._ansi_escape_codes:
+            output = self._strip_ansi_escape_codes(output)
+        return output
+
+    async def _disable_width(self):
+        """Disable paging method"""
+        logger.info("Host {}: Trying to disable paging".format(self._host))
+        command = type(self)._disable_paging_command
+        command = self._normalize_cmd(command)
+        logger.debug(
+            "Host {}: Disable paging command: {}".format(self._host, repr(command))
+        )
+        self._conn.send(command)
+        output = await self._conn.read_until_prompt()
+        logger.debug(
+            "Host {}: Disable paging output: {}".format(self._host, repr(output))
+        )
+        if self._ansi_escape_codes:
+            output = self._strip_ansi_escape_codes(output)
         return output
 
     async def _cleanup(self):
