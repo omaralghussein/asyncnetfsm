@@ -158,7 +158,7 @@ class IOSLikeDevice(BaseDevice):
         if exit_config_mode:
             output += await self.exit_config_mode()
 
-        output = self._normalize_linefeeds(output)
+        # output = self._normalize_linefeeds(output)
         logger.debug(
             "Host {}: Config commands output: {}".format(self._host, repr(output))
         )
