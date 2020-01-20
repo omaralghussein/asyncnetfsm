@@ -93,10 +93,11 @@ class BaseConnection(IConnection):
 
         logger.info("Host {}: Reading until prompt or pattern".format(self._host))
 
+        base_prompt = re.escape(self._base_prompt)
         if isinstance(pattern, str):
-            pattern = [self._base_prompt, pattern]
+            pattern = [base_prompt, pattern]
         elif isinstance(pattern, list):
-            pattern = [self._base_prompt] + pattern
+            pattern = [base_prompt] + pattern
         else:
             raise ValueError("pattern must be string or list of strings")
         return await self.read_until_pattern(pattern=pattern, re_flags=re_flags, read_for=read_for)

@@ -108,9 +108,9 @@ class SSHConnection(BaseConnection):
         """ start interactive-session (shell) """
         self._logger.info(
             "Host {}: SSH: Starting Interacive session term_type={}, term_width={}, term_length={}".format(
-                self._host, TERM_TYPE, TERM_WID, TERM_LEN))
+                self._host, TERM_TYPE, "200", "24"))
         self._stdin, self._stdout, self._stderr = await self._conn.open_session(
-            term_type=TERM_TYPE, term_size=(TERM_WID, TERM_LEN)
+            term_type=TERM_TYPE, term_size=(200, 24)
         )
 
     async def _cleanup(self):
