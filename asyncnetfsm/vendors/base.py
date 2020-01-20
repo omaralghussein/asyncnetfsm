@@ -461,7 +461,7 @@ class BaseDevice(object):
         output = ""
         config_commands = ['\n'] + config_commands
         for cmd in config_commands:
-            self._conn.send(self._normalize_cmd(cmd))
+            # self._conn.send(self._normalize_cmd(cmd))
             output += await self.send_command_expect(cmd)
 
         if self._ansi_escape_codes:

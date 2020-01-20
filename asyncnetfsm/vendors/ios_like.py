@@ -59,6 +59,9 @@ class IOSLikeDevice(BaseDevice):
     _config_check = ")#"
     """Checking string in prompt. If it's exist im prompt - we are in configuration mode"""
 
+    _disable_width_command = "terminal width 511"
+    """Command for disabling paging"""
+
     async def _session_preparation(self):
         await super()._session_preparation()
         await self.enable_mode()

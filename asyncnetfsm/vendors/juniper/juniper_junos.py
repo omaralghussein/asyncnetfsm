@@ -5,29 +5,28 @@ from asyncnetfsm.vendors.junos_like import JunOSLikeDevice
 class JuniperJunOS(JunOSLikeDevice):
     """Class for working with Juniper JunOS"""
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     _cli_check = ">"
     """Checking string for shell mode"""
 
     _cli_command = "cli"
     """Command for entering to cli mode"""
 
-    async def connect(self):
-        """
-        Juniper JunOS asynchronous connection method
 
-        It connects to device and makes some preparation steps for working:
 
-        * _establish_connection() for connecting to device
-        * cli_mode() for checking shell mode. If we are in shell - we automatically enter to cli
-        * _set_base_prompt() for finding and setting device prompt
-        * _disable_paging() for non interact output in commands
-        """
-        logger.info("Host {}: Trying to connect to the device".format(self._host))
-        await self._establish_connection()
-        await self._set_base_prompt()
+        # self.current_terminal = None  # State Machine for the current Terminal mode of the session
+        # self.config_mode = ConfigMode(
+        #     enter_command=type(self)._config_enter,
+        #     exit_command=type(self)._config_check,
+        #     check_string=type(self)._config_exit,
+        #     device=self
+        # )
+    async def _session_preparation(self):
+        """ Prepare session before start using it """
+        await super()._session_preparation()
         await self.cli_mode()
-        await self._disable_paging()
-        logger.info("Host {}: Entering to cmdline mode".format(self._host))
 
     async def check_cli_mode(self):
         """Check if we are in cli mode. Return boolean"""
