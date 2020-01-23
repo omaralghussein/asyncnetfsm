@@ -10,10 +10,10 @@ async def task(param):
 
 
 async def run():
-    dev1 = {'username': 'gorjthatsmyrj',
-            'password': 'My3l@de.com',
+    dev1 = {'username': 'user',
+            'password': 'pass',
             'device_type': 'cisco_ios',
-            'ip': '209.73.216.40',
+            'ip': '8.8.8.8',
             'protocol': 'telnet'
             }
 
