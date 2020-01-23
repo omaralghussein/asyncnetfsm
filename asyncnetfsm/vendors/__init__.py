@@ -12,6 +12,7 @@ from asyncnetfsm.vendors.mikrotik import MikrotikRouterOS
 from asyncnetfsm.vendors.terminal import Terminal
 from asyncnetfsm.vendors.ubiquiti import UbiquityEdgeSwitch
 from asyncnetfsm.vendors.infotecs import HW1000
+from asyncnetfsm.vendors.fortinet import FortinetFortigate
 
 __all__ = (
     "CiscoASA",
@@ -40,4 +41,5 @@ __all__ = (
     "mikrotik",
     "UbiquityEdgeSwitch",
     "HW1000",
+    "FortinetFortigate"
 )

@@ -11,6 +11,7 @@ from asyncnetfsm.vendors import MikrotikRouterOS
 from asyncnetfsm.vendors import Terminal
 from asyncnetfsm.vendors import UbiquityEdgeSwitch
 from asyncnetfsm.vendors import HW1000
+from asyncnetfsm.vendors import FortinetFortigate
 
 # @formatter:off
 # The keys of this dictionary are the supported device_types
@@ -25,6 +26,7 @@ CLASS_MAPPER = {
     "cisco_nxos": CiscoNXOS,
     "fujitsu_switch": FujitsuSwitch,
     "hp_comware": HPComware,
+    "fortinet": FortinetFortigate,
     "hp_comware_limited": HPComwareLimited,
     "juniper_junos": JuniperJunOS,
     "mikrotik_routeros": MikrotikRouterOS,
