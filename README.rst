@@ -3,7 +3,7 @@ AsyncNetFSM
 
 Asynchronous multi-vendor library for interacting with network devices
 
-Inspired by netdev
+Support Telnet
 
 Requires:
 ---------
@@ -28,6 +28,7 @@ Supports:
 * Aruba AOS 6.X
 * Aruba AOS 8.X
 * Terminal
+* Fortinet
 
 Examples:
 ---------
