@@ -1,7 +1,7 @@
 from asyncnetfsm.vendors.arista import AristaEOS
 from asyncnetfsm.vendors.aruba import ArubaAOS8, ArubaAOS6
 from asyncnetfsm.vendors.base import BaseDevice
-from asyncnetfsm.vendors.cisco import CiscoNXOS, CiscoIOSXR, CiscoASA, CiscoIOS
+from asyncnetfsm.vendors.cisco import CiscoNXOS, CiscoIOSXR, CiscoASA, CiscoIOS, CiscoFTD
 from asyncnetfsm.vendors.comware_like import ComwareLikeDevice
 from asyncnetfsm.vendors.fujitsu import FujitsuSwitch
 from asyncnetfsm.vendors.hp import HPComware, HPComwareLimited
@@ -16,6 +16,7 @@ from asyncnetfsm.vendors.fortinet import FortinetFortigate
 
 __all__ = (
     "CiscoASA",
+    "CiscoFTD",
     "CiscoIOS",
     "CiscoIOSXR",
     "CiscoNXOS",

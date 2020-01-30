@@ -20,6 +20,7 @@ Supports:
 * Cisco IOS XR
 * Cisco ASA
 * Cisco NX-OS
+* Cisco FTD
 * HP Comware (like V1910 too)
 * Fujitsu Blade Switches
 * Mikrotik RouterOS
