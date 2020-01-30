@@ -3,7 +3,7 @@ Factory function for creating netdev classes
 """
 from asyncnetfsm.vendors import AristaEOS
 from asyncnetfsm.vendors import ArubaAOS6, ArubaAOS8
-from asyncnetfsm.vendors import CiscoASA, CiscoIOS, CiscoIOSXR, CiscoNXOS
+from asyncnetfsm.vendors import CiscoASA, CiscoIOS, CiscoIOSXR, CiscoNXOS, CiscoFTD
 from asyncnetfsm.vendors import FujitsuSwitch
 from asyncnetfsm.vendors import HPComware, HPComwareLimited
 from asyncnetfsm.vendors import JuniperJunOS
@@ -20,6 +20,7 @@ CLASS_MAPPER = {
     "aruba_aos_6": ArubaAOS6,
     "aruba_aos_8": ArubaAOS8,
     "cisco_asa": CiscoASA,
+    "cisco_ftd": CiscoFTD,
     "cisco_ios": CiscoIOS,
     "cisco_ios_xe": CiscoIOS,
     "cisco_ios_xr": CiscoIOSXR,
