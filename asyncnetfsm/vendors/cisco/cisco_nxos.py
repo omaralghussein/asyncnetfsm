@@ -5,6 +5,7 @@ from asyncnetfsm.vendors.ios_like import IOSLikeDevice
 
 class CiscoNXOS(IOSLikeDevice):
     """Class for working with Cisco Nexus/NX-OS"""
+    _disable_paging_command = "terminal length 0"
 
     @staticmethod
     def _normalize_linefeeds(a_string):

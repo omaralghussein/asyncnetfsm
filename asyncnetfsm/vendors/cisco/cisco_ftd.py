@@ -44,8 +44,8 @@ class CiscoFTD(IOSLikeDevice):
         logger.info(
             "Host {}: Send command: {}".format(self._host, repr(command_string))
         )
-        # self._conn.send(command_string)
-        output = await self.send_command_expect(command_string, pattern, re_flags)
+        self._conn.send(command_string)
+        output = await self._conn.read_until_pattern('>', re_flags=0, read_for=0)
 
         # Some platforms have ansi_escape codes
         if self._ansi_escape_codes:

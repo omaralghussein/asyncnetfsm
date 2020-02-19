@@ -468,7 +468,7 @@ class BaseDevice(object):
             output = self._strip_ansi_escape_codes(output)
 
         output = self._normalize_linefeeds(output)
-        logger.debug(
+        print(
             "Host {}: Config commands output: {}".format(self._host, repr(output))
         )
         return output

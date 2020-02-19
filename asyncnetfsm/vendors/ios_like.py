@@ -66,7 +66,7 @@ class IOSLikeDevice(BaseDevice):
         await super()._session_preparation()
         await self.enable_mode()
         await self._disable_paging()
-        # await self._disable_width()
+        await self._disable_width()
 
     async def check_enable_mode(self):
         """Check if we are in privilege exec. Return boolean"""
