@@ -14,19 +14,13 @@ class JuniperJunOS(JunOSLikeDevice):
     _cli_command = "cli"
     """Command for entering to cli mode"""
 
+    _disable_width_command = "terminal width 10000"
 
-
-        # self.current_terminal = None  # State Machine for the current Terminal mode of the session
-        # self.config_mode = ConfigMode(
-        #     enter_command=type(self)._config_enter,
-        #     exit_command=type(self)._config_check,
-        #     check_string=type(self)._config_exit,
-        #     device=self
-        # )
     async def _session_preparation(self):
         """ Prepare session before start using it """
         await super()._session_preparation()
         await self.cli_mode()
+        await self._disable_paging()
 
     async def check_cli_mode(self):
         """Check if we are in cli mode. Return boolean"""
